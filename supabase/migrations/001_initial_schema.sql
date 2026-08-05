@@ -90,12 +90,24 @@ create index if not exists idx_watch_sessions_channel on public.watch_sessions(c
 -- Auto-create profile on signup
 create or replace function public.handle_new_user()
 returns trigger as $$
+declare
+  base_username text;
+  final_username text;
+  counter int := 0;
 begin
-  insert into public.profiles (id, username)
-  values (
-    new.id,
-    coalesce(new.raw_user_meta_data->>'username', split_part(new.email, '@', 1))
+  base_username := coalesce(
+    new.raw_user_meta_data->>'username',
+    split_part(new.email, '@', 1)
   );
+  final_username := base_username;
+
+  while exists (select 1 from public.profiles where username = final_username) loop
+    counter := counter + 1;
+    final_username := base_username || counter::text;
+  end loop;
+
+  insert into public.profiles (id, username)
+  values (new.id, final_username);
   return new;
 end;
 $$ language plpgsql security definer;
