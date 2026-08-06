@@ -125,12 +125,15 @@ $$ language sql security definer stable;
 -- ============================================
 alter table public.profiles enable row level security;
 
+drop policy if exists "Profiles are viewable by everyone" on public.profiles;
 create policy "Profiles are viewable by everyone"
   on public.profiles for select using (true);
 
+drop policy if exists "Users can insert own profile" on public.profiles;
 create policy "Users can insert own profile"
   on public.profiles for insert with check (auth.uid() = id);
 
+drop policy if exists "Users can update own profile" on public.profiles;
 create policy "Users can update own profile"
   on public.profiles for update using (auth.uid() = id);
 
@@ -139,15 +142,19 @@ create policy "Users can update own profile"
 -- ============================================
 alter table public.servers enable row level security;
 
+drop policy if exists "Members can view their servers" on public.servers;
 create policy "Members can view their servers"
   on public.servers for select using (public.is_server_member(id));
 
+drop policy if exists "Authenticated users can create servers" on public.servers;
 create policy "Authenticated users can create servers"
   on public.servers for insert with check (auth.uid() = owner_id);
 
+drop policy if exists "Owners can update servers" on public.servers;
 create policy "Owners can update servers"
   on public.servers for update using (owner_id = auth.uid());
 
+drop policy if exists "Owners can delete servers" on public.servers;
 create policy "Owners can delete servers"
   on public.servers for delete using (owner_id = auth.uid());
 
@@ -156,15 +163,19 @@ create policy "Owners can delete servers"
 -- ============================================
 alter table public.server_members enable row level security;
 
+drop policy if exists "Members can view other members" on public.server_members;
 create policy "Members can view other members"
   on public.server_members for select using (public.is_server_member(server_id));
 
+drop policy if exists "Users can join servers" on public.server_members;
 create policy "Users can join servers"
   on public.server_members for insert with check (auth.uid() = user_id);
 
+drop policy if exists "Users can leave servers" on public.server_members;
 create policy "Users can leave servers"
   on public.server_members for delete using (auth.uid() = user_id);
 
+drop policy if exists "Admins can remove members" on public.server_members;
 create policy "Admins can remove members"
   on public.server_members for delete using (
     exists (
@@ -180,9 +191,11 @@ create policy "Admins can remove members"
 -- ============================================
 alter table public.channels enable row level security;
 
+drop policy if exists "Members can view channels" on public.channels;
 create policy "Members can view channels"
   on public.channels for select using (public.is_server_member(server_id));
 
+drop policy if exists "Admins can create channels" on public.channels;
 create policy "Admins can create channels"
   on public.channels for insert with check (
     public.is_server_member(server_id)
@@ -194,6 +207,7 @@ create policy "Admins can create channels"
     )
   );
 
+drop policy if exists "Admins can update channels" on public.channels;
 create policy "Admins can update channels"
   on public.channels for update using (
     exists (
@@ -204,6 +218,7 @@ create policy "Admins can update channels"
     )
   );
 
+drop policy if exists "Admins can delete channels" on public.channels;
 create policy "Admins can delete channels"
   on public.channels for delete using (
     exists (
@@ -219,6 +234,7 @@ create policy "Admins can delete channels"
 -- ============================================
 alter table public.messages enable row level security;
 
+drop policy if exists "Members can view messages" on public.messages;
 create policy "Members can view messages"
   on public.messages for select using (
     exists (
@@ -228,6 +244,7 @@ create policy "Members can view messages"
     )
   );
 
+drop policy if exists "Members can send messages" on public.messages;
 create policy "Members can send messages"
   on public.messages for insert with check (
     auth.uid() = user_id
@@ -238,9 +255,11 @@ create policy "Members can send messages"
     )
   );
 
+drop policy if exists "Users can edit own messages" on public.messages;
 create policy "Users can edit own messages"
   on public.messages for update using (auth.uid() = user_id);
 
+drop policy if exists "Users can delete own messages" on public.messages;
 create policy "Users can delete own messages"
   on public.messages for delete using (auth.uid() = user_id);
 
@@ -249,6 +268,7 @@ create policy "Users can delete own messages"
 -- ============================================
 alter table public.voice_participants enable row level security;
 
+drop policy if exists "Members can view voice participants" on public.voice_participants;
 create policy "Members can view voice participants"
   on public.voice_participants for select using (
     exists (
@@ -258,6 +278,7 @@ create policy "Members can view voice participants"
     )
   );
 
+drop policy if exists "Members can join voice" on public.voice_participants;
 create policy "Members can join voice"
   on public.voice_participants for insert with check (
     auth.uid() = user_id
@@ -268,9 +289,11 @@ create policy "Members can join voice"
     )
   );
 
+drop policy if exists "Members can update own voice state" on public.voice_participants;
 create policy "Members can update own voice state"
   on public.voice_participants for update using (auth.uid() = user_id);
 
+drop policy if exists "Members can leave voice" on public.voice_participants;
 create policy "Members can leave voice"
   on public.voice_participants for delete using (auth.uid() = user_id);
 
@@ -279,6 +302,7 @@ create policy "Members can leave voice"
 -- ============================================
 alter table public.watch_sessions enable row level security;
 
+drop policy if exists "Members can view watch sessions" on public.watch_sessions;
 create policy "Members can view watch sessions"
   on public.watch_sessions for select using (
     exists (
@@ -288,6 +312,7 @@ create policy "Members can view watch sessions"
     )
   );
 
+drop policy if exists "Members can create watch sessions" on public.watch_sessions;
 create policy "Members can create watch sessions"
   on public.watch_sessions for insert with check (
     auth.uid() = updated_by
@@ -298,6 +323,7 @@ create policy "Members can create watch sessions"
     )
   );
 
+drop policy if exists "Members can update watch sessions" on public.watch_sessions;
 create policy "Members can update watch sessions"
   on public.watch_sessions for update using (
     exists (
@@ -307,6 +333,7 @@ create policy "Members can update watch sessions"
     )
   );
 
+drop policy if exists "Members can delete watch sessions" on public.watch_sessions;
 create policy "Members can delete watch sessions"
   on public.watch_sessions for delete using (
     exists (
