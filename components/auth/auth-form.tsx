@@ -30,7 +30,7 @@ export function AuthForm({ mode }: AuthFormProps) {
 
     try {
       if (isSignup) {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -38,28 +38,39 @@ export function AuthForm({ mode }: AuthFormProps) {
           },
         });
 
-        if (error) throw error;
+        if (error) {
+          console.error("Signup error:", error);
+          throw error;
+        }
 
-        // The trigger on auth.users will create the profile automatically.
-        // If email confirmation is disabled, the session is created immediately.
-        // If enabled, the user needs to confirm before getting a session.
+        console.log("Signup success:", data);
+
+        if (!data.session) {
+          setError("Account created! Please check your email to confirm.");
+          return;
+        }
+
         router.push("/servers");
         router.refresh();
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
 
-        if (error) throw error;
+        if (error) {
+          console.error("Login error:", error);
+          throw error;
+        }
 
+        console.log("Login success:", data);
         router.push("/servers");
         router.refresh();
       }
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Something went wrong. Please try again."
-      );
+      const message = err instanceof Error ? err.message : "Something went wrong. Please try again.";
+      console.error("Auth error:", message);
+      setError(message);
     } finally {
       setLoading(false);
     }
