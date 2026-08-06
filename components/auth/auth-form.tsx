@@ -50,6 +50,22 @@ export function AuthForm({ mode }: AuthFormProps) {
           return;
         }
 
+        // Create profile manually
+        if (data.user) {
+          const { error: profileError } = await supabase
+            .from("profiles")
+            .insert({
+              id: data.user.id,
+              username: username || email.split("@")[0],
+            })
+            .select()
+            .single();
+
+          if (profileError && profileError.code !== "23505") {
+            console.error("Profile creation error:", profileError);
+          }
+        }
+
         router.push("/servers");
         router.refresh();
       } else {

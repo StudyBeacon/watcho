@@ -87,35 +87,8 @@ create index if not exists idx_watch_sessions_channel on public.watch_sessions(c
 -- TRIGGERS
 -- ============================================
 
--- Auto-create profile on signup
-create or replace function public.handle_new_user()
-returns trigger as $$
-declare
-  base_username text;
-  final_username text;
-  counter int := 0;
-begin
-  base_username := coalesce(
-    new.raw_user_meta_data->>'username',
-    split_part(new.email, '@', 1)
-  );
-  final_username := base_username;
-
-  while exists (select 1 from public.profiles where username = final_username) loop
-    counter := counter + 1;
-    final_username := base_username || counter::text;
-  end loop;
-
-  insert into public.profiles (id, username)
-  values (new.id, final_username);
-  return new;
-end;
-$$ language plpgsql security definer;
-
-drop trigger if exists on_auth_user_created on auth.users;
-create trigger on_auth_user_created
-  after insert on auth.users
-  for each row execute function public.handle_new_user();
+-- Note: Profile creation is now handled in the app code instead of a trigger
+-- to avoid signup failures when the trigger encounters errors.
 
 -- Auto-add owner to server_members + create default #general channel
 create or replace function public.handle_new_server()
