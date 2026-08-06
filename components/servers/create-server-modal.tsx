@@ -75,6 +75,7 @@ export function CreateServerModal({ open, onClose }: CreateServerModalProps) {
       const message = err instanceof Error ? err.message : "Failed to create server";
       console.error("Create server error:", err);
       console.error("Error stack:", err instanceof Error ? err.stack : "No stack trace");
+      alert("Error: " + message + "\n\nCheck console for details (F12)");
       setError(message);
     } finally {
       setLoading(false);
