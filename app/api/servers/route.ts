@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
@@ -9,9 +10,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Server name is required" }, { status: 400 });
     }
 
+    // Use regular client to get user from session
     const supabase = await createClient();
-
-    // Get authenticated user
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -20,8 +20,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
+    // Use service role client to bypass RLS
+    const admin = createServiceRoleClient();
+
     // Ensure profile exists
-    const { error: profileError } = await supabase
+    const { error: profileError } = await admin
       .from("profiles")
       .upsert({
         id: user.id,
@@ -36,7 +39,7 @@ export async function POST(request: Request) {
     }
 
     // Create server using service role (bypasses RLS)
-    const { data: server, error: serverError } = await supabase
+    const { data: server, error: serverError } = await admin
       .from("servers")
       .insert({ name, owner_id: user.id })
       .select("id")
@@ -48,7 +51,7 @@ export async function POST(request: Request) {
     }
 
     // Add owner as server member
-    const { error: memberError } = await supabase
+    const { error: memberError } = await admin
       .from("server_members")
       .insert({
         server_id: server.id,
@@ -62,7 +65,7 @@ export async function POST(request: Request) {
     }
 
     // Create default #general channel
-    const { error: channelError } = await supabase
+    const { error: channelError } = await admin
       .from("channels")
       .insert({
         server_id: server.id,
