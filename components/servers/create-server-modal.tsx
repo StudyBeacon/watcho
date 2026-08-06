@@ -26,6 +26,10 @@ export function CreateServerModal({ open, onClose }: CreateServerModalProps) {
     setLoading(true);
 
     try {
+      // Get current session to ensure auth is properly established
+      const { data: { session } } = await supabase.auth.getSession();
+      console.log("Session:", session);
+      
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -55,25 +59,52 @@ export function CreateServerModal({ open, onClose }: CreateServerModalProps) {
       }
 
       console.log("Inserting server:", { name, owner_id: user.id });
-      const { data, error } = await supabase
+      const { data: serverData, error: serverError } = await supabase
         .from("servers")
         .insert({ name, owner_id: user.id })
         .select("id")
         .single();
 
-      if (error) {
-        console.error("Server creation error:", error);
-        console.error("Error details:", JSON.stringify(error, null, 2));
-        throw error;
+      if (serverError) {
+        console.error("Server creation error:", serverError);
+        console.error("Error details:", JSON.stringify(serverError, null, 2));
+        throw serverError;
       }
 
-      console.log("Server created successfully:", data);
+      console.log("Server created successfully:", serverData);
 
-      // Trigger auto-creates server_members + default #general channel
+      // Add owner as server member
+      const { error: memberError } = await supabase
+        .from("server_members")
+        .insert({
+          server_id: serverData.id,
+          user_id: user.id,
+          role: "owner",
+        });
+
+      if (memberError) {
+        console.error("Failed to add owner to server:", memberError);
+        // Continue anyway - the trigger should handle this, but if not, we try
+      }
+
+      // Create default #general channel
+      const { error: channelError } = await supabase
+        .from("channels")
+        .insert({
+          server_id: serverData.id,
+          name: "general",
+          type: "text",
+          position: 0,
+        });
+
+      if (channelError) {
+        console.error("Failed to create default channel:", channelError);
+      }
+
       setName("");
       onClose();
-      router.refresh();
-      router.push(`/servers/${data.id}/channels`);
+      await router.refresh();
+      router.push(`/servers/${serverData.id}/channels`);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to create server";
       console.error("Create server error:", err);
