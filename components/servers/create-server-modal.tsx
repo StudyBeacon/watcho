@@ -26,85 +26,23 @@ export function CreateServerModal({ open, onClose }: CreateServerModalProps) {
     setLoading(true);
 
     try {
-      // Get current session to ensure auth is properly established
-      const { data: { session } } = await supabase.auth.getSession();
-      console.log("Session:", session);
-      
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      console.log("Auth user:", user);
-      if (!user) throw new Error("Not authenticated");
+      const response = await fetch("/api/servers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
 
-      // Ensure profile exists before creating server
-      console.log("Creating server for user:", user.id);
-      
-      const { error: profileError, data: profileData } = await supabase
-        .from("profiles")
-        .upsert({
-          id: user.id,
-          username: user.user_metadata?.username || user.email?.split("@")[0] || `user_${user.id.slice(0, 8)}`,
-        })
-        .select()
-        .single();
+      const result = await response.json();
+      console.log("API response:", result);
 
-      console.log("Profile upsert result:", { profileError, profileData });
-
-      if (profileError) {
-        console.error("Profile creation error:", profileError);
-        if (profileError.code !== "23505") {
-          // Only throw if it's not a duplicate key error
-          throw new Error(`Failed to create profile: ${profileError.message}`);
-        }
-      }
-
-      console.log("Inserting server:", { name, owner_id: user.id });
-      const { data: serverData, error: serverError } = await supabase
-        .from("servers")
-        .insert({ name, owner_id: user.id })
-        .select("id")
-        .single();
-
-      if (serverError) {
-        console.error("Server creation error:", serverError);
-        console.error("Error details:", JSON.stringify(serverError, null, 2));
-        throw serverError;
-      }
-
-      console.log("Server created successfully:", serverData);
-
-      // Add owner as server member
-      const { error: memberError } = await supabase
-        .from("server_members")
-        .insert({
-          server_id: serverData.id,
-          user_id: user.id,
-          role: "owner",
-        });
-
-      if (memberError) {
-        console.error("Failed to add owner to server:", memberError);
-        // Continue anyway - the trigger should handle this, but if not, we try
-      }
-
-      // Create default #general channel
-      const { error: channelError } = await supabase
-        .from("channels")
-        .insert({
-          server_id: serverData.id,
-          name: "general",
-          type: "text",
-          position: 0,
-        });
-
-      if (channelError) {
-        console.error("Failed to create default channel:", channelError);
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to create server");
       }
 
       setName("");
       onClose();
       await router.refresh();
-      router.push(`/servers/${serverData.id}/channels`);
+      router.push(`/servers/${result.server.id}/channels`);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to create server";
       console.error("Create server error:", err);
