@@ -8,6 +8,12 @@ export function createServiceRoleClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+  console.log("Creating service role client:", {
+    url: supabaseUrl,
+    keyPrefix: serviceRoleKey ? serviceRoleKey.slice(0, 10) + "..." : "MISSING",
+    keyLength: serviceRoleKey ? serviceRoleKey.length : 0
+  });
+
   if (!supabaseUrl) {
     throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL environment variable");
   }
