@@ -346,6 +346,32 @@ create policy "Members can delete watch sessions"
 -- ============================================
 -- REALTIME (enable for relevant tables)
 -- ============================================
-alter publication supabase_realtime add table public.messages;
-alter publication supabase_realtime add table public.voice_participants;
-alter publication supabase_realtime add table public.watch_sessions;
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables 
+    where pubname = 'supabase_realtime' and tablename = 'messages'
+  ) then
+    alter publication supabase_realtime add table public.messages;
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables 
+    where pubname = 'supabase_realtime' and tablename = 'voice_participants'
+  ) then
+    alter publication supabase_realtime add table public.voice_participants;
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables 
+    where pubname = 'supabase_realtime' and tablename = 'watch_sessions'
+  ) then
+    alter publication supabase_realtime add table public.watch_sessions;
+  end if;
+end $$;
