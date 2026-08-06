@@ -29,12 +29,13 @@ export function CreateServerModal({ open, onClose }: CreateServerModalProps) {
       const {
         data: { user },
       } = await supabase.auth.getUser();
+      console.log("Auth user:", user);
       if (!user) throw new Error("Not authenticated");
 
       // Ensure profile exists before creating server
       console.log("Creating server for user:", user.id);
       
-      const { error: profileError } = await supabase
+      const { error: profileError, data: profileData } = await supabase
         .from("profiles")
         .upsert({
           id: user.id,
@@ -42,6 +43,8 @@ export function CreateServerModal({ open, onClose }: CreateServerModalProps) {
         })
         .select()
         .single();
+
+      console.log("Profile upsert result:", { profileError, profileData });
 
       if (profileError) {
         console.error("Profile creation error:", profileError);
